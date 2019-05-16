@@ -1,0 +1,115 @@
+---
+title: "Untitled"
+author: "Ninad"
+date: "5/4/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+```{r}
+
+df <- read.csv("C:/Users/ninad/Documents/DMPA HW/clean5x.csv")
+
+
+
+
+df$high_booking_rate <- as.factor(df$high_booking_rate)
+
+#summary(df$high_booking_rate)
+set.seed(12345)
+train <- sample(nrow(df),0.7*nrow(df))
+df_train <- df[train,]
+df_test <- df[-train,]
+
+
+GLM_Regular <- glm(df_train$high_booking_rate~.,data=df_train,family = "binomial")
+summary(GLM_Regular)
+
+
+  
+```
+```{r}
+
+predictprob_test <- predict(GLM_Regular,newdata = df_test)
+
+#predictprob_test<-predict.glm(GLM_Regular, df_test, type="response", se.fit=FALSE)
+predictedclass_test <- ifelse(predictprob_test>0.5,1,0)
+
+(c=table(predictedclass_test,group=df_test$high_booking_rate))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+
+  
+```
+```{r}
+
+
+library(randomForest)
+set.seed(123)
+summary(df$high_booking_rate)
+df_train$high_booking_rate<- as.factor(df_train$high_booking_rate)
+
+randomforest_model=randomForest(high_booking_rate~.,data=df,subset=train,mtry=50,importance=TRUE,na.action=na.roughfix)
+
+#randomforest_model
+yhat.bag = predict(randomforest_model,newdata=df_test)
+randomforest.test=df_test$high_booking_rate
+(c = table(randomforest.test,yhat.bag))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+importance(randomforest_model)
+varImpPlot(randomforest_model)
+
+ 
+```
+
+```{r}
+
+
+library(randomForest)
+set.seed(123)
+summary(df$high_booking_rate)
+df_train$high_booking_rate<- as.factor(df_train$high_booking_rate)
+
+randomforest_model=randomForest(high_booking_rate~.,data=df,subset=train,mtry=7,importance=TRUE,na.action=na.roughfix)
+
+#randomforest_model
+yhat.bag = predict(randomforest_model,newdata=df_test)
+randomforest.test=df_test$high_booking_rate
+(c = table(randomforest.test,yhat.bag))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+importance(randomforest_model)
+varImpPlot(randomforest_model)
+
+ 
+```
+
+```{r}
+
+
+library(e1071)
+model <- naiveBayes(df_train$high_booking_rate~., data=df_train)
+model
+prediction <- predict(model, newdata = df_test[,-51])
+prediction_prob_naive<-predict(model, newdata = df_test[,-51],type = "raw")
+(c=table(df_test$high_booking_rate,prediction,dnn=list('actual','predicted')))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+  
+
+
+ beep(sound = 3, expr = NULL)
+```

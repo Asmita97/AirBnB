@@ -1,0 +1,604 @@
+---
+title: "Untitled"
+author: "Cleaning3"
+date: "4/28/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+```
+
+```{r}
+
+setwd("C:/Users/ninad/Documents/DMPA HW")
+df <- read.csv("C:/Users/ninad/Documents/DMPA HW/clean5.csv")
+
+df$access<-NULL
+df$transit<-NULL
+df$house_rules<-NULL
+df$neighborhood_overview<-NULL
+df$space<-NULL
+df$name<-NULL
+df$description<-NULL
+df$first_review<-NULL
+
+summary(df$state)
+
+library(sentimentr)
+library(lexicon)
+library(scales)
+
+df$summary <- as.character(df$summary)
+sentiment1=sentiment_by(df$summary)
+beep(sound = 3, expr = NULL)
+rescale(sentiment1$ave_sentiment)
+sentiment1$ave_sentiment=sentiment1$ave_sentiment / sentiment1$word_count
+sentiment1=data.frame(sentiment1$ave_sentiment)
+df$summary <- sentiment1$sentiment1.ave_sentiment
+rescale(df$summary)
+
+df<-subset.data.frame(df,!is.na(df$summary))
+
+df$host_response_time<-factor(df$host_response_time, levels = c(levels(df$host_response_time), NA), labels = c(levels(df$host_response_time), "Not Specified"), exclude = NULL)
+
+library(tidyr)
+df<-df %>% drop_na()
+
+
+
+write.csv(df,file="Cleaned_Frame")
+
+
+df$latitude<-NULL
+df$longitude<-NULL
+df$zipcode<-NULL
+df$amenities<-NULL
+df$host_verifications<-NULL
+
+summary(df$high_booking_rate)
+
+write.csv(df,file="Frame_for_prediction.csv")
+
+
+
+beep(sound = 8, expr = NULL)
+
+df$high_booking_rate <- as.factor(df$high_booking_rate)
+
+
+
+set.seed(12345)
+train <- sample(nrow(df),0.7*nrow(df))
+df_train <- df[train,]
+df_test <- df[-train,]
+
+```
+
+```{r}
+
+df <- read.csv("C:/Users/ninad/Documents/DMPA HW/Frame_for_prediction.csv")
+
+df$requires_license<-NULL
+df$availability_30<-NULL
+df$availability_60<-NULL
+df$availability_90<-NULL
+df$city_name<-NULL
+#df$is_location_exact<-NULL
+#df$host_since<-NULL
+df$X<-NULL
+
+
+
+df$high_booking_rate <- as.factor(df$high_booking_rate)
+
+summary(df$high_booking_rate)
+set.seed(12345)
+train <- sample(nrow(df),0.7*nrow(df))
+df_train <- df[train,]
+df_test <- df[-train,]
+
+
+GLM_Regular <- glm(df_train$high_booking_rate~.,data=df_train,family = "binomial")
+summary(GLM_Regular)
+
+
+  
+```
+
+
+
+
+```{r}
+
+predictprob_test <- predict(GLM_Regular,newdata = df_test)
+
+#predictprob_test<-predict.glm(GLM_Regular, df_test, type="response", se.fit=FALSE)
+predictedclass_test <- ifelse(predictprob_test>0.5,1,0)
+
+(c=table(predictedclass_test,group=df_test$high_booking_rate))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+
+  
+```
+
+
+```{r}
+
+library(glmnet)
+
+
+
+
+drops <- c("X","high_booking_rate","state")
+df1<-df[ , !(names(df) %in% drops)]
+Y<-df_train$high_booking_rate
+summary(df_train$high_booking_rate)
+train <- sample(nrow(df1),0.7*nrow(df1))
+df1_train <- df1[train,]
+df1_test <- df1[-train,]
+summary(df_train$high_booking_rate)
+x        <- as.matrix(df1_train)
+
+# Note alpha=1 for lasso only and can blend with ridge penalty down to
+# alpha=0 ridge only.
+glmmod <- glmnet(x, y=df_train$high_booking_rate, alpha=1, family="binomial")
+
+
+
+summary(df$high_booking_rate)
+# Plot variable coefficients vs. shrinkage parameter lambda.
+plot(glmmod, xvar="lambda")
+
+
+summary(df)
+
+  
+```
+
+
+```{r}
+
+
+library(randomForest)
+set.seed(123)
+summary(df$high_booking_rate)
+df_train$high_booking_rate<- as.factor(df_train$high_booking_rate)
+
+randomforest_model=randomForest(high_booking_rate~.,data=df,subset=train,mtry=30,importance=TRUE,na.action=na.roughfix)
+
+#randomforest_model
+yhat.bag = predict(randomforest_model,newdata=df_test)
+randomforest.test=df_test$high_booking_rate
+(c = table(randomforest.test,yhat.bag))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+importance(randomforest_model)
+varImpPlot(randomforest_model)
+
+Bagging_prob = as.data.frame(predict(randomforest_model,newdata=df_test,type = "prob"))
+Bagging_prob <- transform(Bagging_prob, max = pmax(Bagging_prob$`0`, Bagging_prob$`1`))
+#Bagging_prob$max  
+```
+
+```{r}
+
+
+
+
+library(randomForest)
+set.seed(123)
+summary(df$high_booking_rate)
+df_train$high_booking_rate<- as.factor(df_train$high_booking_rate)
+
+randomforest_model=randomForest(high_booking_rate~.,data=df,subset=train,mtry=6,importance=TRUE,na.action=na.roughfix)
+
+#randomforest_model
+yhat.bag = predict(randomforest_model,newdata=df_test)
+randomforest.test=df_test$high_booking_rate
+(c = table(randomforest.test,yhat.bag))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+importance(randomforest_model)
+varImpPlot(randomforest_model)
+
+
+Random_prob = as.data.frame(predict(randomforest_model,newdata=df_test,type = "prob"))
+Random_prob <- transform(Random_prob, max = pmax(Random_prob$`0`, Random_prob$`1`))
+#Random_prob$max 
+ 
+```
+```{r}
+#install.packages("e1071")
+library(e1071)
+model <- naiveBayes(df_train$high_booking_rate~., data=df_train)
+model
+prediction <- predict(model, newdata = df_test[,-28])
+prediction_prob_naive<-predict(model, newdata = df_test[,-28],type = "raw")
+(c=table(df_test$high_booking_rate,prediction,dnn=list('actual','predicted')))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+  
+  
+```
+
+
+```{r}
+
+
+x <- c( "price",  "availability_365","state", "minimum_nights", "no_of_amenities", "cleaning_fee", "host_response_time", "host_total_listings_count", "no_of_verifications", "extra_people", "accommodates","host_is_superhost", "instant_bookable", "guests_included", "host_response_rate","cancellation_policy", "beds", "property_type","bedrooms","bathrooms","summary","host_since")
+
+
+
+
+y<-"high_booking_rate"
+x1<-c(x,"high_booking_rate")
+df_feature<-df[x1]
+
+library(randomForest)
+set.seed(123)
+
+train <- sample(nrow(df_feature),0.7*nrow(df_feature))
+dff_train <- df_feature[train,]
+dff_test <- df_feature[-train,]
+
+
+randomforest_model=randomForest(high_booking_rate~.,data=dff_train,subset=train,mtry=22,importance=TRUE,na.action=na.roughfix)
+
+#randomforest_model
+yhat.bag = predict(randomforest_model,newdata=dff_test)
+randomforest.test=dff_test$high_booking_rate
+(c = table(randomforest.test,yhat.bag))
+(acc = (c[1,1]+c[2,2])/sum(c))
+(sensitivity = (c[2,2])/(c[2,1]+c[2,2]))
+importance(randomforest_model)
+varImpPlot(randomforest_model)
+
+```
+
+```{r}
+x <- c( "price",  "availability_365","state", "minimum_nights", "no_of_amenities", "cleaning_fee", "host_response_time", "host_total_listings_count", "no_of_verifications", "extra_people", "accommodates","host_is_superhost", "instant_bookable", "guests_included", "host_response_rate","cancellation_policy", "beds", "property_type","bedrooms","bathrooms","summary","host_since")
+
+
+h2o.init()
+
+y<-"high_booking_rate"
+x1<-c(x,"high_booking_rate")
+df_feature<-df[x1]
+
+df_feature$high_booking_rate=as.factor(df_feature$high_booking_rate)
+
+
+df4.hex <- as.h2o(df_feature)
+
+splits <- h2o.splitFrame(
+  data = df4.hex,
+  ratios = c(0.6,0.2),   ## only need to specify 2 fractions, the 3rd is implied
+  destination_frames = c("train.hex", "valid.hex", "test.hex"), seed = 1234
+)
+train <- splits[[1]]
+valid <- splits[[2]]
+test  <- splits[[3]]
+
+
+new_test <- as.h2o(df_test[x1])
+
+gbm <- h2o.gbm(x = x, y = y, training_frame = train)
+
+gbm
+
+h2o.auc(h2o.performance(gbm, newdata = valid))
+
+gbm <- h2o.gbm(x = x, y = y, training_frame = h2o.rbind(train, valid), nfolds = 4, seed = 0xDECAF)
+## Show a detailed summary of the cross validation metrics
+## This gives you an idea of the variance between the folds
+gbm@model$cross_validation_metrics_summary
+## Get the cross-validated AUC by scoring the combined holdout predictions.
+## (Instead of taking the average of the metrics across the folds)
+h2o.auc(h2o.performance(gbm, xval = TRUE))
+
+h2o.performance(gbm,test)
+
+bm <- h2o.gbm(
+  ## standard model parameters
+  x = x,
+  y = y,
+  training_frame = train,
+  validation_frame = valid,
+  ## more trees is better if the learning rate is small enough
+  ## here, use "more than enough" trees - we have early stopping
+  ntrees = 10000,
+  ## smaller learning rate is better (this is a good value for most datasets, but see below for annealing)
+  learn_rate=0.01,
+  ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+  stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUC",
+  ## sample 80% of rows per tree
+  sample_rate = 0.8,
+  ## fix a random number generator seed for reproducibility
+  seed = 1234,
+  ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+  score_tree_interval = 10
+)
+## Get the AUC on the validation set
+h2o.auc(h2o.performance(gbm, newdata = test))
+print(h2o.performance(gbm,newdata = test))
+
+```
+
+```{r}
+
+## Depth 10 is usually plenty of depth for most datasets, but you never know
+hyper_params = list( max_depth = seq(1,29,2) )
+#hyper_params = list( max_depth = c(4,6,8,12,16,20) ) ##faster for larger datasets
+grid <- h2o.grid(
+  ## hyper parameters
+  hyper_params = hyper_params,
+  ## full Cartesian hyper-parameter search
+  search_criteria = list(strategy = "Cartesian"),
+  ## which algorithm to run
+  algorithm="gbm",
+  ## identifier for the grid, to later retrieve it
+  grid_id="depth_grid",
+  ## standard model parameters
+  x = x,
+  y = y,
+  training_frame = train,
+  validation_frame = valid,
+  ## more trees is better if the learning rate is small enough
+  ## here, use "more than enough" trees - we have early stopping
+  ntrees = 10000,
+  ## smaller learning rate is better
+  ## since we have learning_rate_annealing, we can afford to start with a bigger learning rate
+  learn_rate = 0.05,
+  ## learning rate annealing: learning_rate shrinks by 1% after every tree
+  ## (use 1.00 to disable, but then lower the learning_rate)
+  learn_rate_annealing = 0.99,
+  ## sample 80% of rows per tree
+  sample_rate = 0.8,
+  ## sample 80% of columns per split
+  col_sample_rate = 0.8,
+  ## fix a random number generator seed for reproducibility
+  seed = 1234,
+  ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+  stopping_rounds = 5,
+  stopping_tolerance = 1e-4,
+  stopping_metric = "AUC",
+  ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+  score_tree_interval = 10
+)
+## by default, display the grid search results sorted by increasing logloss (since this is a classification task)
+grid
+## sort the grid models by decreasing AUC
+sortedGrid <- h2o.getGrid("depth_grid", sort_by="auc", decreasing = TRUE)
+sortedGrid
+## find the range of max_depth for the top 5 models
+topDepths = sortedGrid@summary_table$max_depth[1:5]
+minDepth = min(as.numeric(topDepths))
+maxDepth = max(as.numeric(topDepths))
+
+```
+
+```{r}
+
+minDepth = min(as.numeric(topDepths))
+minDepth
+maxDepth = max(as.numeric(topDepths))
+maxDepth
+
+hyper_params = list(
+  ## restrict the search to the range of max_depth established above
+  max_depth = seq(minDepth,maxDepth,1),
+  ## search a large space of row sampling rates per tree
+  sample_rate = seq(0.2,1,0.01),
+  ## search a large space of column sampling rates per split
+  col_sample_rate = seq(0.2,1,0.01),
+  ## search a large space of column sampling rates per tree
+  col_sample_rate_per_tree = seq(0.2,1,0.01),
+  ## search a large space of how column sampling per split should change as a function of the depth of the split
+  col_sample_rate_change_per_level = seq(0.9,1.1,0.01),
+  ## search a large space of the number of min rows in a terminal node
+  min_rows = 2^seq(0,log2(nrow(train))-1,1),
+  ## search a large space of the number of bins for split-finding for continuous and integer columns
+  nbins = 2^seq(4,10,1),
+  ## search a large space of the number of bins for split-finding for categorical columns
+  nbins_cats = 2^seq(4,12,1),
+  ## search a few minimum required relative error improvement thresholds for a split to happen
+  min_split_improvement = c(0,1e-8,1e-6,1e-4),
+  ## try all histogram types (QuantilesGlobal and RoundRobin are good for numeric columns with outliers)
+  histogram_type = c("UniformAdaptive","QuantilesGlobal","RoundRobin")
+)
+search_criteria = list(
+  ## Random grid search
+  strategy = "RandomDiscrete",
+  ## limit the runtime to 60 minutes
+  max_runtime_secs = 3600,
+  ## build no more than 100 models
+  max_models = 100,
+  ## random number generator seed to make sampling of parameter combinations reproducible
+  seed = 1234,
+  ## early stopping once the leaderboard of the top 5 models is converged to 0.1% relative difference
+  stopping_rounds = 5,
+  stopping_metric = "AUC",
+  stopping_tolerance = 1e-3
+)
+grid <- h2o.grid(
+  ## hyper parameters
+  hyper_params = hyper_params,
+  ## hyper-parameter search configuration (see above)
+  search_criteria = search_criteria,
+  ## which algorithm to run
+  algorithm = "gbm",
+  ## identifier for the grid, to later retrieve it
+  grid_id = "final_grid",
+  ## standard model parameters
+  x = x,
+  y = y,
+  training_frame = train,
+  validation_frame = valid,
+  ## more trees is better if the learning rate is small enough
+  ## use "more than enough" trees - we have early stopping
+  ntrees = 10000,
+  ## smaller learning rate is better
+  ## since we have learning_rate_annealing, we can afford to start with a bigger learning rate
+  learn_rate = 0.05,
+  ## learning rate annealing: learning_rate shrinks by 1% after every tree
+  ## (use 1.00 to disable, but then lower the learning_rate)
+  learn_rate_annealing = 0.99,
+  ## early stopping based on timeout (no model should take more than 1 hour - modify as needed)
+  max_runtime_secs = 3600,
+  ## early stopping once the validation AUC doesn't improve by at least 0.01% for 5 consecutive scoring events
+  stopping_rounds = 5, stopping_tolerance = 1e-4, stopping_metric = "AUC",
+  ## score every 10 trees to make early stopping reproducible (it depends on the scoring interval)
+  score_tree_interval = 10,
+  ## base random number generator seed for each model (automatically gets incremented internally for each model)
+  seed = 1234
+)
+## Sort the grid models by AUC
+sortedGrid <- h2o.getGrid("final_grid", sort_by = "auc", decreasing = TRUE)
+sortedGrid
+
+```
+
+```{r}
+
+for (i in 1:5) {
+  gbm <- h2o.getModel(sortedGrid@model_ids[[i]])
+  print(h2o.auc(h2o.performance(gbm, valid = TRUE)))
+  print(h2o.performance(gbm,newdata = test))
+  
+}
+
+gbm <- h2o.getModel(sortedGrid@model_ids[[1]])
+print(h2o.auc(h2o.performance(gbm, newdata = test)))
+print(h2o.performance(gbm, valid = TRUE))
+print(h2o.performance(gbm, valid = TRUE))
+
+localH2O <- h2o.init(ip='localhost', nthreads=-1,
+                     min_mem_size='100G', max_mem_size='200G')
+
+```
+```{r}
+boost.pred=h2o.performance(gbm,newdata = new_test)
+
+#predictprob_test
+#prediction_prob_naive
+#Bagging_prob$max
+#Random_prob$max
+
+
+
+
+
+cutoff <- seq(0, 1, length = 100)
+fpr <- numeric(100)  # Creates a vector of 100 0's
+tpr <- numeric(100)
+
+
+
+roc.table_Logistic <- data.frame(Cutoff = cutoff, FPR = fpr,TPR = tpr)
+roc.table_Naive <- data.frame(Cutoff = cutoff, FPR = fpr,TPR = tpr)
+roc.table_Bagging<- data.frame(Cutoff = cutoff, FPR = fpr,TPR = tpr)
+roc.table_Random_forest<- data.frame(Cutoff = cutoff, FPR = fpr,TPR = tpr)
+Actual_test<-df_test$high_booking_rate
+
+
+for (i in 1:100) {
+  roc.table_Logistic$FPR[i] <- sum(predictprob_test > cutoff[i] & Actual_test == 0)/sum(Actual_test == 0)
+  roc.table_Logistic$TPR[i] <- sum(predictprob_test > cutoff[i] & Actual_test == 1)/sum(Actual_test == 1)
+  
+  roc.table_Naive$FPR[i] <- sum(prediction_prob_naive > cutoff[i] & Actual_test == 0)/sum(Actual_test == 0)
+  roc.table_Naive$TPR[i] <- sum(prediction_prob_naive > cutoff[i] & Actual_test == 1)/sum(Actual_test == 1)
+  
+  roc.table_Bagging$FPR[i] <- sum(Bagging_prob$max > cutoff[i] & Actual_test == 0)/sum(Actual_test == 0)
+  roc.table_Bagging$TPR[i] <- sum(Bagging_prob$max > cutoff[i] & Actual_test == 1)/sum(Actual_test == 1)
+  
+  roc.table_Random_forest$FPR[i] <- sum(Random_prob$max > cutoff[i] & Actual_test == 0)/sum(Actual_test == 0)
+  roc.table_Random_forest$TPR[i] <- sum(Random_prob$max > cutoff[i] & Actual_test == 1)/sum(Actual_test == 1)
+  
+}
+
+     # Plot precision vs. thresholds
+
+plot(boost.pred, type = "roc")     
+plot(TPR ~ FPR, data = roc.table_Logistic, col="blue",lty=2)
+#lines(TPR~FPR,data = roc.table_Naive, col="red",lty=2)
+#lines(TPR~FPR,data = roc.table_Bagging,col="purple",lty=2)
+#lines(TPR~FPR,data = roc.table_Random_forest,col="green",lty=2)
+
+#legend(0.6, 0.4, c("kNN","Naive Bayes","Logistic"),lty=c(1,1,1), col=c("red","green","blue"))
+abline(a =0 , b =1, lty = 2, col = 'black')
+
+
+
+
+
+
+
+
+
+
+    
+```
+```{r}
+
+#install.packages("prediction")
+library(prediction)
+library(ROCR)
+h2o.init()
+#boost.pred=h2o.performance(gbm,newdata = new_test)
+
+plot(boost.pred, type = "roc")
+
+lines(TPR~FPR,data = roc.table_Naive ,col="purple",lty=2)
+
+#randomforest_model_test<-randomForest(high_booking_rate~.,data=df_test,mtry=6,importance=TRUE,na.action=na.roughfix)
+
+predictions=as.vector(randomforest_model_test$votes[,2])
+pred=prediction(predictions,df_test$high_booking_rate)
+
+perf_AUC=performance(pred,"auc") #Calculate the AUC value
+AUC=perf_AUC@y.values[[1]]
+
+perf_ROC=performance(pred,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROC,add=TRUE ,main="ROC plot", col = "blue")
+
+
+#bagging_model=randomForest(high_booking_rate~.,data=df_test,mtry=22,importance=TRUE,na.action=na.roughfix)
+predictionsX=as.vector(bagging_model$votes[,2])
+predX=prediction(predictionsX,df_test$high_booking_rate)
+perf_AUCX=performance(predX,"auc") #Calculate the AUC value
+AUCX=perf_AUCX@y.values[[1]]
+
+perf_ROCX=performance(predX,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROCX, add=TRUE, main="ROC plot", col = "red")
+
+GLM_RegularX <- glm(df_test$high_booking_rate~.,data=df_test,family = "binomial")
+pretrain<-predict(GLM_RegularX, typr="response")
+
+predX=prediction(pretrain,df_test$high_booking_rate)
+
+perf_ROCX=performance(predX,"tpr","fpr") #plot the actual ROC curve
+plot(perf_ROCX, main="ROC plot",add=TRUE, col = "pink")
+
+
+
+
+lines(TPR~FPR,data = roc.table_Naive ,col="purple",lty=1)
+#predictprob_test
+#prediction_prob_naive
+#Bagging_prob$max
+#Random_prob$max
+
+
+```

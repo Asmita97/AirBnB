@@ -1,0 +1,217 @@
+---
+title: "Cleaning2"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+```{r}
+setwd("C:/Users/ninad/Downloads")
+df <- read.csv("C:/Users/ninad/Downloads/airbnb_train_x.csv")
+
+```
+
+```{r}
+
+df$host_acceptance_rate = NULL
+df$monthly_price = NULL
+df$security_deposit = NULL
+df$square_feet = NULL
+df$weekly_price = NULL
+df$city = NULL
+df$country = NULL
+df$experiences_offered = NULL
+df$host_location = NULL
+df$host_name = NULL
+df$host_neighbourhood = NULL
+df$jurisdiction_names = NULL
+df$license = NULL
+df$market = NULL
+df$notes = NULL
+df$smart_location = NULL
+df$street = NULL
+df$X = NULL
+df$interaction = NULL
+df$neighbourhood = NULL
+df$is_business_travel_ready = NULL
+df$maximum_nights = NULL
+df$host_listings_count = NULL
+df$host_about = NULL
+
+
+
+
+
+##dfKK$bathrooms <- as.numeric(dfKK$bathrooms)
+df$access[df$access==""] <- NA
+sum(is.na(df$access))
+#with(na_count1,name[na_count>10000])
+#str(dfKK)
+summary(df$bathrooms)
+str(df$bathrooms)
+
+```
+
+```{r}
+#dfKK$high_booking_rate[dfKK$high_booking_rate==NA] 
+#sum(is.na(dfKK$access))
+#with(na_count1,name[na_count>10000])
+
+Clean1<-df[complete.cases(df$high_booking_rate), ]
+write.csv(Clean1,file="Clean1.csv")
+```
+
+
+```{r}
+
+df2<- read.csv("C:/Users/ninad/Documents/DMPA HW/Clean1.csv")
+
+```
+
+```{r}
+
+df2$bathrooms[is.na(df2$bathrooms)] =median(df2$bathrooms, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$bedrooms[is.na(df2$bedrooms)] =median(df2$bedrooms, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$cleaning_fee[is.na(df2$cleaning_fee)] =median(df2$cleaning_fee, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$host_listings_count[is.na(df2$host_listings_count)] =median(df2$host_listings_count, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2 <- subset.data.frame(df2,df2$minimum_nights<366)
+
+```
+
+```{r}
+
+df2$host_response_rate[is.na(df2$host_response_rate)] =median(df2$host_response_rate, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$host_total_listings_count[is.na(df2$host_total_listings_count)] =median(df2$host_total_listings_count, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$price[is.na(df2$price)] =median(df2$price, na.rm=TRUE)
+
+```
+
+
+```{r}
+
+df2$beds[is.na(df2$beds)] =median(df2$beds, na.rm=TRUE)
+
+```
+
+```{r}
+
+df2$description[df2$description==""] <- NA
+
+```
+
+
+```{r}
+
+df2<-df2[!df2$host_has_profile_pic=="", ]
+
+```
+
+
+```{r}
+
+df2$host_response_time[df2$host_response_time==""] <- NA
+
+```
+
+```{r}
+
+df2$host_response_rate[df2$host_response_rate==""] <- NA
+
+```
+
+```{r}
+
+df2$house_rules[df2$house_rules==""] <- NA
+
+```
+
+```{r}
+
+df2$house_rules[df2$house_rules==""] <- NA
+
+df2 <- df2[!df2$neighborhood_overview ==1,] 
+
+df2$space[df2$space==""] <- NA
+
+df2$summary[df2$summary==""] <- NA
+
+df2$property_type[df2$property_type==""] <- NA
+
+df2$transit[df2$transit==""] <- NA
+
+df2$zipcode[df2$zipcode==""] <- NA
+
+df2$zipcode[df2$zipcode==" "] <- NA
+
+df2<-df2[!df2$state=="",] 
+
+df2<-subset.data.frame(df2,!is.na(df2$zipcode))
+
+```
+
+```{r}
+
+df2<-df2[df2$country_code=='US',]
+
+df2$country_code = NULL
+
+ 
+```
+
+```{r}
+
+df2$name[df2$name==""]<-NA
+
+df2$neighborhood_overview[df2$neighborhood_overview==""]<-NA 
+
+df2$summary[df2$summary==""]<-NA 
+
+```
+
+```{r}
+
+write.csv(df2,file="Clean2.csv")
+
+```

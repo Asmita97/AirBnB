@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+author: "Cleaning3"
+date: "April 18, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+```{r}
+
+setwd("C:/Users/ninad/Documents/DMPA HW")
+df3 <- read.csv("C:/Users/ninad/Documents/DMPA HW/Clean2.csv")
+
+
+```
+
+```{r}
+
+df3 <- subset.data.frame(df3,df3$accommodates<21)
+
+df3 <- subset.data.frame(df3,df3$bathrooms<10)
+
+df3 <- subset.data.frame(df3,df3$beds<21)
+
+```
+
+
+```{r}
+
+library(stringr)
+
+df3$host_verifications<-lapply(df3$host_verifications, as.character)
+namevector <- c("no_of_verifications", "no_of_amenities")
+df3[ , namevector] <- NA
+
+
+for(i in 1:nrow(df3))
+{
+  if( df3$host_verifications[i]=='[]')
+     df3$host_verifications[i]=0
+  else
+    df3$no_of_verifications[i]<-str_count(df3$host_verifications[i], ',')+1
+  
+}
+
+str(df3$no_of_verifications)
+
+```
+
+```{r}
+
+df3 <- subset.data.frame(df3,df3$amenities!=".")
+#print(clean3$amenities)
+
+#library(stringr)
+
+df3$amenities <-lapply(df3$amenities, as.character)
+#no_of_amenities<-rep(0,nrow(df3))
+
+
+for(i in 1:nrow(df3))
+{
+  if( df3$amenities[i]=='[]')
+      df3$amenities[i]=0
+  else
+    df3$no_of_amenities[i]<-str_count(df3$amenities[i], ',')+1
+
+}
+
+
+df33 <-  apply(df3,2,as.character)
+
+write.csv(df33,file="Clean4.csv")
+
+
+```

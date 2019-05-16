@@ -1,0 +1,63 @@
+---
+title: "Untitled"
+author: "Cleaning3"
+date: "4/27/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+setwd("C:/Users/ninad/Documents/DMPA HW")
+df4 <- read.csv("C:/Users/ninad/Documents/DMPA HW/clean5.csv")
+
+df4$host_response_time<-factor(df4$host_response_time, levels = c(levels(df4$host_response_time), NA), labels = c(levels(df4$host_response_time), "Not Specified"), exclude = NULL)
+
+x <- c( "price",  "availability_365","state", "minimum_nights", "no_of_amenities", "cleaning_fee", "host_response_time", "host_total_listings_count", "no_of_verifications", "extra_people", "accommodates","host_is_superhost", "instant_bookable", "guests_included", "host_response_rate","cancellation_policy", "beds", "property_type")
+
+
+
+
+y<-"high_booking_rate"
+x1<-c(x,"high_booking_rate")
+df4<-df4[x1]
+
+
+df4<-df4 %>% drop_na()
+
+
+str(df4)
+
+set.seed(12345)
+train <- sample(nrow(df4),0.7*nrow(df4))
+df4_train <- df4[train,]
+df4_test <- df4[-train,]
+
+summary(df4_train$high_booking_rate)
+
+
+
+tree.high_booking_rate=tree(as.factor(high_booking_rate)~.,data=df4_train)
+summary(tree.high_booking_rate)
+plot(tree.high_booking_rate)
+text(tree.high_booking_rate,pretty=0)
+tree.pred=predict(tree.high_booking_rate,df4_test, type="class")
+
+
+confusion = table(tree.pred,df4_test$high_booking_rate)
+confusion
+Accuracy = (confusion[1,1]+confusion[2,2])/sum(confusion)
+Accuracy
+
+
+
+```
+
